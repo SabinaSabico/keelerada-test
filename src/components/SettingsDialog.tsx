@@ -81,37 +81,29 @@ export function SettingsDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="ekilexApiKey">Ekilex API võti</Label>
+            <Label htmlFor="ekilexApiKey">Ekilex API võti (valikuline)</Label>
             <Input
               id="ekilexApiKey"
               type="password"
               autoComplete="off"
-              placeholder="Ekilex kasutajaprofiilist"
+              placeholder="Ainult kohalikuks arenduseks"
               value={form.ekilexApiKey}
               onChange={(e) =>
                 setForm((s) => ({ ...s, ekilexApiKey: e.target.value }))
               }
             />
             <p className="text-xs text-muted-foreground">
-              Vajalik sõnade kontrolliks / definitsioonideks. Võti:{' '}
+              Sõnastikukontroll kasutab brauseris{' '}
               <a
                 className="text-brand-link underline"
-                href="https://ekilex.ee/userprofile"
+                href="https://api.sonapi.ee/v2/tubli"
                 target="_blank"
                 rel="noreferrer"
               >
-                ekilex.ee/userprofile
-              </a>
-              . API:{' '}
-              <a
-                className="text-brand-link underline"
-                href="https://ekilex.ee/swagger-ui/index.html"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Swagger
-              </a>
-              .
+                SONAPI
+              </a>{' '}
+              (EKI/Sõnaveeb). Ametlik Ekilex API ei tööta GitHub Pages’il CORS-i
+              tõttu; võti on kasulik ainult kohaliku Vite proxy kaudu.
             </p>
           </div>
 

@@ -40,7 +40,7 @@ async function tryFetchPageText(url: string): Promise<{
   } catch {
     return {
       warning:
-        'Õppekava URL-i ei saa brauserist lugeda (tõenäoliselt CORS). Gemini saab URL-i ja metaandmed.',
+        'Õppekava lehte ei saa brauser otse avada (CORS) — Gemini kasutab URL-i koos klassi, aine ja teema andmetega.',
     }
   }
 }

@@ -27,7 +27,7 @@ Open the printed local URL (note the base path: `/keelerada-test/`).
 1. Copy `.env.example` → `.env`
 2. Put `VITE_GEMINI_API_KEY=...` in `.env` (never commit `.env`)
 3. Restart `npm run dev`
-4. Optional: `VITE_EKILEX_API_KEY=...` for [Ekilex](https://ekilex.ee/swagger-ui/index.html) word checks ([get a key](https://ekilex.ee/userprofile))
+4. Optional: `VITE_EKILEX_API_KEY=...` only for local official Ekilex via Vite proxy. Published site uses [SONAPI](https://api.sonapi.ee/v2/tubli) (EKI/Sõnaveeb) for dictionary checks — no key needed.
 
 You can also paste keys in the app **Settings** (gear). A value saved in Settings overrides the build-time env key in that browser.
 

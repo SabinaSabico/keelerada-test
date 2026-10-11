@@ -342,10 +342,10 @@ export function NewMaterialPage() {
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     {w.ekilexFound === true && (
-                      <Badge variant="success">Ekilex</Badge>
+                      <Badge variant="success">Sõnastikus</Badge>
                     )}
                     {w.ekilexFound === false && (
-                      <Badge variant="outline">Pole Ekilexis</Badge>
+                      <Badge variant="outline">Pole sõnastikus</Badge>
                     )}
                   </div>
                   <div className="flex flex-col gap-2 sm:flex-row">
