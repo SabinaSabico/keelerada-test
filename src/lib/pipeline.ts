@@ -48,14 +48,97 @@ export async function runCurriculumThenWords(
     curriculum: curriculumResult.curriculum,
   })
 
-  const warnings = [curriculumResult.warning, wordsResult.warning].filter(
-    Boolean,
-  ) as string[]
+  onStatus?.('Täidan puuduvad definitsioonid…')
+  const withDefs = await fillMissingDefinitions({
+    classLevel: input.classLevel,
+    subject: input.subject,
+    topic: input.topic,
+    sourceText: input.sourceText,
+    curriculum: curriculumResult.curriculum,
+    words: wordsResult.words,
+  })
+
+  const warnings = [
+    curriculumResult.warning,
+    wordsResult.warning,
+    withDefs.warning,
+  ].filter(Boolean) as string[]
 
   return {
     curriculum: curriculumResult.curriculum,
-    words: wordsResult.words,
+    words: withDefs.words,
     warning: warnings.length ? warnings.join(' ') : undefined,
+  }
+}
+
+/** Gemini definitions for words that have no dictionary definition yet. */
+export async function fillMissingDefinitions(input: {
+  classLevel: string
+  subject: string
+  topic: string
+  sourceText: string
+  curriculum: CurriculumInfo
+  words: WordItem[]
+}): Promise<{ words: WordItem[]; warning?: string }> {
+  const missing = input.words.filter((w) => w.word.trim() && !w.definition?.trim())
+  if (!missing.length) {
+    return { words: input.words }
+  }
+
+  try {
+    const data = await generateJson<{
+      definitions?: Array<{ word?: string; definition?: string }>
+    }>(
+      PROMPTS.defineMissingWords({
+        classLevel: input.classLevel,
+        subject: input.subject,
+        topic: input.topic,
+        sourceText: input.sourceText,
+        curriculum: input.curriculum,
+        words: missing.map((w) => w.word),
+      }),
+    )
+
+    const byWord = new Map<string, string>()
+    for (const row of data.definitions || []) {
+      const word = (row.word || '').trim().toLowerCase()
+      const definition = (row.definition || '').trim()
+      if (word && definition) byWord.set(word, definition)
+    }
+
+    let filled = 0
+    const words = input.words.map((w) => {
+      if (w.definition?.trim()) return w
+      const definition = byWord.get(w.word.trim().toLowerCase())
+      if (!definition) return w
+      filled += 1
+      const cleanedNote = w.note
+        ?.replace(/\s*·?\s*Ei leitud sõnastikust\s*/gi, '')
+        .replace(/^\s*·\s*|\s*·\s*$/g, '')
+        .trim()
+      return {
+        ...w,
+        definition,
+        definitionSource: 'gemini' as const,
+        note: cleanedNote || undefined,
+      }
+    })
+
+    const stillMissing = words.filter((w) => !w.definition?.trim()).length
+    const warning =
+      stillMissing > 0
+        ? `${filled} definitsiooni loodi Gemini abil; ${stillMissing} jäi ikka tühjaks — täida käsitsi.`
+        : filled > 0
+          ? `${filled} definitsiooni loodi Gemini abil (sõnastikus puudusid).`
+          : undefined
+
+    return { words, warning }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return {
+      words: input.words,
+      warning: `Puuduvate definitsioonide loomine ebaõnnestus (${message}). Täida need käsitsi enne ülesandeid.`,
+    }
   }
 }
 

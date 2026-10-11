@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { GeminiError } from '@/lib/gemini'
 import { isAllowedFile, parseUploadedFile } from '@/lib/parseFile'
 import {
+  fillMissingDefinitions,
   runCurriculumThenWords,
   runExercisesStep,
 } from '@/lib/pipeline'
@@ -145,14 +146,30 @@ export function NewMaterialPage() {
       return
     }
     setBusy(true)
-    setStatus('Loon ülesandeid…')
     try {
+      let workingWords = words.filter((w) => w.word.trim())
+      if (workingWords.some((w) => !w.definition?.trim())) {
+        setStatus('Täidan puuduvad definitsioonid…')
+        const filled = await fillMissingDefinitions({
+          classLevel: classLevel.trim(),
+          subject: subject.trim(),
+          topic: topic.trim(),
+          sourceText,
+          curriculum,
+          words: workingWords,
+        })
+        workingWords = filled.words
+        setWords(filled.words)
+        if (filled.warning) setWarning(filled.warning)
+      }
+
+      setStatus('Loon ülesandeid…')
       const result = await runExercisesStep({
         classLevel: classLevel.trim(),
         subject: subject.trim(),
         topic: topic.trim(),
         sourceText,
-        words: words.filter((w) => w.word.trim()),
+        words: workingWords,
         curriculum,
       })
       setWords(result.words)
@@ -344,9 +361,14 @@ export function NewMaterialPage() {
                     {w.ekilexFound === true && (
                       <Badge variant="success">Sõnastikus</Badge>
                     )}
-                    {w.ekilexFound === false && (
-                      <Badge variant="outline">Pole sõnastikus</Badge>
+                    {w.definitionSource === 'gemini' && (
+                      <Badge variant="secondary">Gemini def</Badge>
                     )}
+                    {w.ekilexFound === false &&
+                      w.definitionSource !== 'gemini' &&
+                      !w.definition && (
+                        <Badge variant="outline">Pole sõnastikus</Badge>
+                      )}
                   </div>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <Input

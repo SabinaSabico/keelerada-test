@@ -16,6 +16,8 @@ export type WordItem = {
   word: string
   note?: string
   definition?: string
+  /** Where the definition came from (dictionary vs Gemini fallback). */
+  definitionSource?: 'sonapi' | 'ekilex' | 'gemini'
   ekilexFound?: boolean
   ekilexWordId?: number
 }

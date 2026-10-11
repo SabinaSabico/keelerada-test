@@ -187,6 +187,9 @@ export async function enrichWordsWithEkilex(
         ekilexFound: hit.found,
         ekilexWordId: hit.wordId,
         definition: hit.definition || item.definition,
+        definitionSource: hit.definition
+          ? hit.source
+          : item.definitionSource,
         note: hit.found
           ? item.note
           : [item.note, 'Ei leitud sõnastikust'].filter(Boolean).join(' · '),

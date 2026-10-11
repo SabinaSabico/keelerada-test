@@ -80,6 +80,51 @@ Vasta AINULT JSON-ina:
 }`
   },
 
+  defineMissingWords(input: {
+    classLevel: string
+    subject: string
+    topic: string
+    sourceText: string
+    curriculum: CurriculumInfo
+    words: string[]
+  }) {
+    const list = input.words.map((w, i) => `${i + 1}. ${w}`).join('\n')
+    return `Sa koostad ainealaseid definitsioone eesti keeles õppivale muu emakeelega õpilasele.
+
+Klass: ${input.classLevel}
+Õppeaine: ${input.subject}
+Teema: ${input.topic}
+
+Õppekava kontekst:
+Eesmärgid: ${input.curriculum.goals.join('; ') || '—'}
+Õpitulemused: ${(input.curriculum.learningOutcomes || []).join('; ') || '—'}
+Märksõnad: ${input.curriculum.keywords.join('; ') || '—'}
+
+Õpetaja tekst (kontekst):
+"""
+${input.sourceText.slice(0, 12000)}
+"""
+
+Koosta igale allolevale terminile üks eestikeelne definitsioon.
+Terminid:
+${list}
+
+Nõuded:
+- Definitsioon peab sobima antud aine (${input.subject}) ja teema (${input.topic}) kontekstiga.
+- Kasuta lihtsat, klassile sobivat eesti keelt.
+- Ära kasuta defineeritavat sõna ega selle tuletisi definitsioonis.
+- Ära kasuta vene keelt ega tõlkeid.
+- Definitsioon peab olema piisavalt täpne, et seda ei saaks segi ajada teiste terminitega.
+- 1.–3. klassis eelista ühte lühikest lauset; 4.–9. klassis võib olla veidi täpsem.
+
+Vasta AINULT JSON-ina:
+{
+  "definitions": [
+    { "word": "termin täpselt nagu sisendis", "definition": "eestikeelne definitsioon" }
+  ]
+}`
+  },
+
   /**
    * Full KEELERADA exercise generator prompt (teacher-provided).
    * Pre-selected Ekilex-checked terms are injected so step 1 does not invent new words.
