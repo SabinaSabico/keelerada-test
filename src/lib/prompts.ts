@@ -6,24 +6,21 @@ export const PROMPTS = {
     subject: string
     topic: string
     oppekavaUrl?: string
-    fetchedPageText?: string
   }) {
     const urlBlock = input.oppekavaUrl
-      ? `Õppekava materjalide viide (URL): ${input.oppekavaUrl}`
-      : 'Õppekava URL puudub.'
-
-    const pageBlock = input.fetchedPageText
-      ? `Allikas lehelt (lühendatud):\n${input.fetchedPageText.slice(0, 14000)}`
-      : 'Lehe sisu ei õnnestunud brauserist laadida (nt CORS). Kasuta URL-i ja oma teadmisi Eesti põhikooli riikliku õppekava kohta (OKMV / Põhikool).'
+      ? `Õppekava URL (loo see URL Context tööriistaga läbi ja kasuta lehe sisu):\n${input.oppekavaUrl}`
+      : 'Õppekava URL puudub — kasuta oma teadmisi Eesti põhikooli riikliku õppekava kohta.'
 
     return `Sa oled Eesti põhikooli õppekava assistent.
-Antud klassi, aine ja teema põhjal leia õppekavast (või selle põhjal) õpitulemused, eesmärgid, olulised mõisted/terminid ja muu asjakohane info.
+Antud klassi, aine ja teema põhjal leia õppekavast õpitulemused, eesmärgid, olulised mõisted/terminid.
+
+Kui URL on antud, KASUTA URL Context tööriista, et see leht tegelikult läbi lugeda. Ära piirdu ainult URL-i arvamisega, kui leht on loetav.
+Kui lehte ei õnnestu lugeda, kasuta siis oma teadmisi riikliku õppekava (OKMV / Põhikool) kohta.
 
 Klass: ${input.classLevel}
 Aine: ${input.subject}
 Teema: ${input.topic}
 ${urlBlock}
-${pageBlock}
 
 Vasta AINULT kehtiva JSON-ina, ilma markdownita:
 {

@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { DEFAULT_GEMINI_MODEL, loadSettings } from '@/lib/storage'
 
 export class GeminiError extends Error {
@@ -10,7 +9,6 @@ export class GeminiError extends Error {
 
 /**
  * Free/stable Flash models to try when the preferred one is overloaded or gone.
- * Order: settings preference first, then these fallbacks (deduped at runtime).
  * @see https://ai.google.dev/gemini-api/docs/models
  */
 export const GEMINI_FALLBACK_MODELS = [
@@ -20,6 +18,11 @@ export const GEMINI_FALLBACK_MODELS = [
   'gemini-3.6-flash',
   'gemini-flash-latest',
 ] as const
+
+type GenerateOptions = {
+  /** Public URLs for Gemini URL Context tool (fetched by Google, not the browser). */
+  urlContextUrls?: string[]
+}
 
 function getApiKey(): string {
   const settings = loadSettings()
@@ -112,36 +115,99 @@ function modelQueue(): string[] {
   return queue
 }
 
-async function generateWithModel(
-  apiKey: string,
-  modelName: string,
-  prompt: string,
-): Promise<string> {
-  const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({
-    model: modelName,
-    generationConfig: {
-      temperature: 0.4,
-      responseMimeType: 'application/json',
-    },
-  })
-  const result = await model.generateContent(prompt)
-  const text = result.response.text()
-  if (!text?.trim()) {
+function extractTextFromResponse(data: {
+  candidates?: Array<{
+    content?: { parts?: Array<{ text?: string }> }
+  }>
+  error?: { message?: string; status?: string; code?: number }
+}): string {
+  if (data.error?.message) {
+    throw new Error(
+      `${data.error.status || data.error.code || 'ERROR'}: ${data.error.message}`,
+    )
+  }
+  const text = data.candidates?.[0]?.content?.parts
+    ?.map((p) => p.text || '')
+    .join('')
+    .trim()
+  if (!text) {
     throw new GeminiError('AI tagastas tühja vastuse.')
   }
   return text
 }
 
-export async function generateJson<T>(prompt: string): Promise<T> {
+/**
+ * Call Gemini generateContent via REST so we can use URL Context from the browser.
+ * URL pages are fetched by Google's servers — not by this frontend (no CORS).
+ * @see https://ai.google.dev/gemini-api/docs/url-context
+ */
+async function generateWithModel(
+  apiKey: string,
+  modelName: string,
+  prompt: string,
+  options?: GenerateOptions,
+): Promise<string> {
+  const useUrlContext = Boolean(options?.urlContextUrls?.length)
+  const body: Record<string, unknown> = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.4,
+      // JSON mime type can conflict with tools on some models; keep it when no tools.
+      ...(useUrlContext ? {} : { responseMimeType: 'application/json' }),
+    },
+  }
+
+  if (useUrlContext) {
+    body.tools = [{ url_context: {} }]
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(apiKey)}`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = (await res.json()) as {
+    candidates?: Array<{
+      content?: { parts?: Array<{ text?: string }> }
+    }>
+    error?: { message?: string; status?: string; code?: number }
+  }
+
+  if (!res.ok) {
+    throw new Error(
+      data.error?.message ||
+        `HTTP ${res.status} ${data.error?.status || ''}`.trim(),
+    )
+  }
+
+  return extractTextFromResponse(data)
+}
+
+export async function generateJson<T>(
+  prompt: string,
+  options?: GenerateOptions,
+): Promise<T> {
   const apiKey = getApiKey()
   const models = modelQueue()
   let lastMessage = ''
 
+  // Mention URLs in the prompt so the model knows what to retrieve with url_context.
+  const urls = (options?.urlContextUrls || []).filter(Boolean)
+  const promptWithUrls =
+    urls.length > 0
+      ? `${prompt}\n\nKasuta URL Context tööriista, et lugeda need lehed:\n${urls.map((u) => `- ${u}`).join('\n')}`
+      : prompt
+
   for (let i = 0; i < models.length; i += 1) {
     const modelName = models[i]
     try {
-      const text = await generateWithModel(apiKey, modelName, prompt)
+      const text = await generateWithModel(
+        apiKey,
+        modelName,
+        promptWithUrls,
+        options,
+      )
       return parseJsonFromModel<T>(text)
     } catch (err) {
       if (err instanceof GeminiError && err.message.includes('JSON')) {
@@ -149,13 +215,11 @@ export async function generateJson<T>(prompt: string): Promise<T> {
       }
       const message = err instanceof Error ? err.message : String(err)
       lastMessage = message
-      const canRetry =
-        i < models.length - 1 && isRetryableModelError(message)
+      const canRetry = i < models.length - 1 && isRetryableModelError(message)
       if (!canRetry) {
         if (err instanceof GeminiError) throw err
         throw mapGeminiError(message)
       }
-      // try next fallback model
     }
   }
 

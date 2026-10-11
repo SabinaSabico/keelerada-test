@@ -58,16 +58,11 @@ export async function runCurriculumThenWords(
     words: wordsResult.words,
   })
 
-  const warnings = [
-    curriculumResult.warning,
-    wordsResult.warning,
-    withDefs.warning,
-  ].filter(Boolean) as string[]
-
+  // Only surface a warning when the user still cannot proceed cleanly.
   return {
     curriculum: curriculumResult.curriculum,
     words: withDefs.words,
-    warning: warnings.length ? warnings.join(' ') : undefined,
+    warning: withDefs.warning,
   }
 }
 
@@ -106,38 +101,32 @@ export async function fillMissingDefinitions(input: {
       if (word && definition) byWord.set(word, definition)
     }
 
-    let filled = 0
     const words = input.words.map((w) => {
       if (w.definition?.trim()) return w
       const definition = byWord.get(w.word.trim().toLowerCase())
       if (!definition) return w
-      filled += 1
-      const cleanedNote = w.note
-        ?.replace(/\s*·?\s*Ei leitud sõnastikust\s*/gi, '')
-        .replace(/^\s*·\s*|\s*·\s*$/g, '')
-        .trim()
       return {
         ...w,
         definition,
         definitionSource: 'gemini' as const,
-        note: cleanedNote || undefined,
       }
     })
 
     const stillMissing = words.filter((w) => !w.definition?.trim()).length
-    const warning =
-      stillMissing > 0
-        ? `${filled} definitsiooni loodi Gemini abil; ${stillMissing} jäi ikka tühjaks — täida käsitsi.`
-        : filled > 0
-          ? `${filled} definitsiooni loodi Gemini abil (sõnastikus puudusid).`
-          : undefined
+    if (stillMissing === 0) return { words }
 
-    return { words, warning }
+    return {
+      words,
+      warning: `${stillMissing} sõnal puudub endiselt definitsioon. Täida need käsitsi või proovi uuesti.`,
+    }
   } catch (err) {
+    const stillMissing = input.words.filter((w) => !w.definition?.trim()).length
+    if (stillMissing === 0) return { words: input.words }
+
     const message = err instanceof Error ? err.message : String(err)
     return {
       words: input.words,
-      warning: `Puuduvate definitsioonide loomine ebaõnnestus (${message}). Täida need käsitsi enne ülesandeid.`,
+      warning: `Gemini ei saanud puuduvaid definitsioone luua (${message}). Proovi hiljem uuesti või täida käsitsi.`,
     }
   }
 }

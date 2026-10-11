@@ -150,8 +150,9 @@ export function SettingsDialog({
               }
             />
             <p className="text-xs text-muted-foreground">
-              Vaikimisi OKMV Põhikool. Kui brauser ei saa lehte CORS-i tõttu
-              lugeda, saadetakse Gemini’le URL + klass/aine/teema.
+              Vaikimisi OKMV Põhikool. Gemini loeb selle URL-i ise (URL Context)
+              — brauser lehte ei ava. Tulemust UI-s ei näidata; seda kasutatakse
+              ainult sõnade/ülesannete taustaks.
             </p>
           </div>
 

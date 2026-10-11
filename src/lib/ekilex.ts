@@ -63,10 +63,8 @@ async function searchSonapi(word: string): Promise<{
   const res = await fetch(`https://api.sonapi.ee/v2/${q}`, {
     headers: { Accept: 'application/json' },
   })
-  if (res.status === 404) return { found: false }
-  if (!res.ok) {
-    throw new Error(`SONAPI HTTP ${res.status}`)
-  }
+  // 404 / 5xx: treat as "not in dictionary" and let Gemini define the word.
+  if (!res.ok) return { found: false }
   const data = (await res.json()) as SonapiResponse
   const results = Array.isArray(data.searchResult) ? data.searchResult : []
   if (!results.length) {
@@ -176,7 +174,6 @@ export async function enrichWordsWithEkilex(
   words: WordItem[],
 ): Promise<EkilexEnrichResult> {
   const enriched: WordItem[] = []
-  let hardFailures = 0
 
   for (const item of words) {
     try {
@@ -190,12 +187,10 @@ export async function enrichWordsWithEkilex(
         definitionSource: hit.definition
           ? hit.source
           : item.definitionSource,
-        note: hit.found
-          ? item.note
-          : [item.note, 'Ei leitud sõnastikust'].filter(Boolean).join(' · '),
+        note: item.note,
       })
     } catch {
-      hardFailures += 1
+      // Silent — Gemini definition step covers missing dictionary hits.
       enriched.push({
         ...item,
         id: item.id || createId(),
@@ -204,21 +199,7 @@ export async function enrichWordsWithEkilex(
     }
   }
 
-  if (hardFailures === words.length && words.length > 0) {
-    return {
-      words,
-      warning:
-        'Sõnastiku kontroll ebaõnnestus (võrgu-/teenuse viga). Jätkan Gemini sõnadega ilma sõnastikukontrollita.',
-    }
-  }
-
   const found = enriched.filter((w) => w.ekilexFound)
   const missing = enriched.filter((w) => !w.ekilexFound)
-  const ordered = [...found, ...missing]
-
-  const warning = missing.length
-    ? `${missing.length} sõna ei leitud EKI sõnastikust (SONAPI/Sõnaveeb). Eelista leitud sõnu või asenda need käsitsi.`
-    : undefined
-
-  return { words: ordered, warning }
+  return { words: [...found, ...missing] }
 }

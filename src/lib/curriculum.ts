@@ -8,43 +8,10 @@ export type CurriculumResult = {
   warning?: string
 }
 
-async function tryFetchPageText(url: string): Promise<{
-  text?: string
-  warning?: string
-}> {
-  if (!url.trim()) return {}
-  try {
-    const res = await fetch(url, { method: 'GET' })
-    if (!res.ok) {
-      return {
-        warning: `Õppekava lehte ei õnnestunud laadida (HTTP ${res.status}). Kasutan URL-i + klassi/aine/teema + Gemini teadmisi.`,
-      }
-    }
-    const contentType = res.headers.get('content-type') || ''
-    const raw = await res.text()
-    const text = contentType.includes('html')
-      ? raw
-          .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-          .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-          .replace(/<[^>]+>/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim()
-      : raw.trim()
-    if (!text) {
-      return {
-        warning:
-          'Õppekava leht oli tühi. Kasutan URL-i + klassi/aine/teema + Gemini teadmisi.',
-      }
-    }
-    return { text }
-  } catch {
-    return {
-      warning:
-        'Õppekava lehte ei saa brauser otse avada (CORS) — Gemini kasutab URL-i koos klassi, aine ja teema andmetega.',
-    }
-  }
-}
-
+/**
+ * Ask Gemini to read the õppekava URL via URL Context (server-side fetch by Google).
+ * The browser never downloads the page — no CORS.
+ */
 export async function fetchCurriculumInfo(input: {
   classLevel: string
   subject: string
@@ -52,14 +19,12 @@ export async function fetchCurriculumInfo(input: {
 }): Promise<CurriculumResult> {
   const settings = loadSettings()
   const url = settings.oppekavaUrl?.trim()
-  const fetched = url ? await tryFetchPageText(url) : {}
 
   const prompt = PROMPTS.curriculum({
     classLevel: input.classLevel,
     subject: input.subject,
     topic: input.topic,
     oppekavaUrl: url || undefined,
-    fetchedPageText: fetched.text,
   })
 
   const data = await generateJson<{
@@ -67,7 +32,7 @@ export async function fetchCurriculumInfo(input: {
     learningOutcomes?: string[]
     keywords?: string[]
     notes?: string
-  }>(prompt)
+  }>(prompt, url ? { urlContextUrls: [url] } : undefined)
 
   return {
     curriculum: {
@@ -81,6 +46,5 @@ export async function fetchCurriculumInfo(input: {
       notes: data.notes?.trim() || undefined,
       raw: JSON.stringify(data),
     },
-    warning: fetched.warning,
   }
 }

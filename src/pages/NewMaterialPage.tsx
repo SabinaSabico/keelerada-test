@@ -240,7 +240,7 @@ export function NewMaterialPage() {
           {error}
         </div>
       )}
-      {warning && (
+      {!error && warning && (
         <div className="rounded-xl border border-brand-orange/30 bg-orange-50 px-4 py-3 text-sm text-foreground">
           {warning}
         </div>
