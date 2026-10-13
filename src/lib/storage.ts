@@ -7,8 +7,8 @@ import {
 const MATERIALS_KEY = 'keelerada.materials.v1'
 const SETTINGS_KEY = 'keelerada.settings.v1'
 
-/** Current stable Flash for new projects (Google Gemini API docs). */
-export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash'
+/** Fast default for this PoC (3.8 Flash is much slower on long texts). */
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite'
 
 const RETIRED_GEMINI_MODELS = new Set([
   'gemini-2.0-flash',
@@ -19,6 +19,8 @@ const RETIRED_GEMINI_MODELS = new Set([
   'gemini-1.5-flash-lite',
   'gemini-1.5-pro',
   'gemini-pro',
+  // Previous PoC default — migrate users to the faster lite model.
+  'gemini-3.8-flash',
 ])
 
 export const DEFAULT_SETTINGS: AppSettings = {

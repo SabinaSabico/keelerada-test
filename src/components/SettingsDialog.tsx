@@ -117,8 +117,8 @@ export function SettingsDialog({
               }
             />
             <p className="text-xs text-muted-foreground">
-              Vaikimisi {DEFAULT_GEMINI_MODEL} (Google’i praegune stabiilne
-              Flash uute projektide jaoks).
+              Vaikimisi {DEFAULT_GEMINI_MODEL} (kiirem Flash-Lite). 3.8 Flash
+              on aeglasem — jäta varuvariandiks.
             </p>
           </div>
 

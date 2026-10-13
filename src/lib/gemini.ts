@@ -12,11 +12,11 @@ export class GeminiError extends Error {
  * @see https://ai.google.dev/gemini-api/docs/models
  */
 export const GEMINI_FALLBACK_MODELS = [
-  'gemini-3.8-flash',
   'gemini-3.5-flash-lite',
   'gemini-3.5-flash',
   'gemini-3.6-flash',
   'gemini-flash-latest',
+  'gemini-3.8-flash',
 ] as const
 
 type GenerateOptions = {
