@@ -56,7 +56,7 @@ export function LibraryPage() {
           </CardHeader>
           <CardContent>
             <Button asChild>
-              <Link to="/">Uus materjal</Link>
+              <Link to="/opetajale">Uus materjal</Link>
             </Button>
           </CardContent>
         </Card>
@@ -78,7 +78,7 @@ export function LibraryPage() {
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
               <Button asChild>
-                <Link to={`/salvestatud/${item.id}`}>Ava</Link>
+                <Link to={`/opetajale/salvestatud/${item.id}`}>Ava</Link>
               </Button>
               <Button variant="secondary" onClick={() => handleDelete(item.id)}>
                 Kustuta

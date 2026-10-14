@@ -274,3 +274,79 @@ export async function runExercisesStep(input: {
 
   return { words, exercises }
 }
+
+/**
+ * Õpilasele: selected surface forms → curriculum → SONAPI/defs → exercises.
+ * Skips Gemini word picking (pupil already chose words).
+ */
+export async function runPupilHarjuta(
+  input: {
+    classLevel: string
+    subject: string
+    topic: string
+    sourceText: string
+    selectedWords: string[]
+  },
+  onStatus?: (status: string) => void,
+): Promise<{
+  curriculum: CurriculumInfo
+  words: WordItem[]
+  exercises: Exercise[]
+  warning?: string
+}> {
+  const unique: string[] = []
+  const seen = new Set<string>()
+  for (const raw of input.selectedWords) {
+    const word = raw.trim()
+    if (!word) continue
+    const key = word.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    unique.push(word)
+  }
+
+  if (!unique.length) {
+    throw new Error('Vali vähemalt üks sõna.')
+  }
+
+  onStatus?.('Kontrollin õppekava…')
+  const curriculumResult = await runCurriculumStep({
+    classLevel: input.classLevel,
+    subject: input.subject,
+    topic: input.topic,
+  })
+
+  onStatus?.('Otsin definitsioone…')
+  const baseWords: WordItem[] = unique.map((word) => ({
+    id: createId(),
+    word,
+  }))
+  const { words: enriched } = await enrichWordsWithEkilex(baseWords)
+
+  onStatus?.('Täidan puuduvad definitsioonid…')
+  const withDefs = await fillMissingDefinitions({
+    classLevel: input.classLevel,
+    subject: input.subject,
+    topic: input.topic,
+    sourceText: input.sourceText,
+    curriculum: curriculumResult.curriculum,
+    words: enriched,
+  })
+
+  onStatus?.('Loon ülesandeid…')
+  const exerciseResult = await runExercisesStep({
+    classLevel: input.classLevel,
+    subject: input.subject,
+    topic: input.topic,
+    sourceText: input.sourceText,
+    words: withDefs.words,
+    curriculum: curriculumResult.curriculum,
+  })
+
+  return {
+    curriculum: curriculumResult.curriculum,
+    words: exerciseResult.words,
+    exercises: exerciseResult.exercises,
+    warning: withDefs.warning,
+  }
+}

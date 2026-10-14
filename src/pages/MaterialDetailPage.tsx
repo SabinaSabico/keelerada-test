@@ -26,7 +26,7 @@ export function MaterialDetailPage() {
         </CardHeader>
         <CardContent>
           <Button asChild>
-            <Link to="/salvestatud">Tagasi nimekirja</Link>
+            <Link to="/opetajale/salvestatud">Tagasi nimekirja</Link>
           </Button>
         </CardContent>
       </Card>
@@ -46,14 +46,14 @@ export function MaterialDetailPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" asChild>
-            <Link to="/salvestatud">Tagasi</Link>
+            <Link to="/opetajale/salvestatud">Tagasi</Link>
           </Button>
           <Button
             variant="destructive"
             onClick={() => {
               if (!confirm('Kustuta see materjal?')) return
               deleteMaterial(item.id)
-              navigate('/salvestatud')
+              navigate('/opetajale/salvestatud')
             }}
           >
             Kustuta

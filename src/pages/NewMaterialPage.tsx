@@ -481,7 +481,7 @@ export function NewMaterialPage() {
               {topic} · {classLevel} · {subject} · {exercises.length} ülesannet
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => navigate(`/salvestatud/${savedId}`)}>
+              <Button onClick={() => navigate(`/opetajale/salvestatud/${savedId}`)}>
                 Ava harjutused
               </Button>
               <Button
